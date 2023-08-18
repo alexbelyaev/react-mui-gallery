@@ -7,6 +7,8 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import MainPage from './MainPage'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';  
+import mainTheme from '../styles/theme';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 
 function App() {
@@ -18,7 +20,7 @@ function App() {
     categories,
     initProductsList
   }
-
+  const theme = createTheme(mainTheme)
   
   useEffect(()=>{
     //fetch(`/gallery/data/data.php`)
@@ -35,13 +37,17 @@ function App() {
     ? <div></div>
     :
     //<Router basename='gallery'>
-    <Router>
-      <Routes >
-        <Route exact path="/" element={<MainPage config={config} />} />
-        <Route exact path="/:category" element={<MainPage config={config} />} />
-        <Route exact path="/:category/:id/" element={<MainPage config={config} />} />
-      </Routes>
-    </Router>
+    <ThemeProvider theme={theme}>
+      <Router>
+        <Routes >
+          <Route exact path="/" element={<MainPage config={config} />} />
+          <Route exact path="/:category" element={<MainPage config={config} />} />
+          <Route exact path="/:category/:id/" element={<MainPage config={config} />} />
+          <Route exact path="/search/:query/" element={<MainPage config={config} />} />
+          <Route exact path="/search/:query/:id/" element={<MainPage config={config} />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 

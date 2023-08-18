@@ -46,7 +46,6 @@ const MansoryCardContent = ({data}) => {
             </Box>
             }
         </Box>
-
     </Box>
   )
 }
@@ -55,13 +54,22 @@ const MasonryCard = ({ index, data, width }) => {
   const dispatchCurrentItem = React.useContext(CurrentItemDispatchContext)
   const dispatchIsPreviewOpen = React.useContext(IsPreviewOpenDispatchContext)
   const { photo_num } = data
-  const { category } = useParams();
+  const { category, query } = useParams();
   const mqWidth = React.useContext(MediaQueryContext)
 
   const handleClick = () => {
     dispatchCurrentItem({ type: 'selected', item: data })
     if (mqWidth==='sm') 
       dispatchIsPreviewOpen({ type: 'open' });
+  }
+  
+  let changeCurrentItem 
+  if (query){
+    changeCurrentItem = `/search/${query}/${photo_num}`
+  } else {
+    changeCurrentItem = /^.{1,2}$/i.test(category) 
+    ? `/${category}/${photo_num}` 
+    : `/${photo_num}`
   }
   
   return (
@@ -76,7 +84,7 @@ const MasonryCard = ({ index, data, width }) => {
       { mqWidth === 'xs'
         ? <MansoryCardContent data={data} />
         : (
-          <Link to={/^.$/i.test(category) ? `/${category}/${photo_num}` : `/${photo_num}`}>
+          <Link to={changeCurrentItem}>
             <CardActionArea onClick={ handleClick }>
               <MansoryCardContent data={data} />
             </CardActionArea>
@@ -106,7 +114,7 @@ export default function GalleryScrollContainer({ items=[], index=false}) {
   React.useEffect(()=>{
     if (items[index]) {
       scrollToIndex(index)
-      console.log(`ScrollToIndex: ${index}`)
+      // console.log(`ScrollToIndex: ${index}`)
     }
   }, [index, scrollToIndex, items])
 

@@ -9,28 +9,35 @@ import AppBar from './AppBar.js'
 import Drawer from '@mui/material/Drawer';
 import PreviewSection from './PreviewSection';
 import ModalPreview from './ModalPreview';
+import ModalCenter from './ModalCenter';
 import useWidth from '../hooks/useWidth';
 import useUrlParams from '../hooks/useUrlParams';
 import ErrorPage from './ErrorPage';
 import { CurrentItemContext, CurrentItemDispatchContext} from '../contexts/CurrentItemContext'
 import { IsPreviewOpenDispatchContext } from '../contexts/IsPreviewOpenContext'
+import SearchTextField from './SearchTextField';
+import ArtistsList from './ArtistsList';
 
 
 function MainPage({ config }) {
-  const {categories, initProductsList, labels} = config
-  const [productsList, setProductsList] = useState([...initProductsList])
+  const {categories, labels, initProductsList} = config
+  const initProductsListFiltered = initProductsList.filter(el=>el.category!=='94')
+  const [productsList, setProductsList] = useState(initProductsListFiltered)
   const [currentItem, dispatchCurrentItem] = useReducer(itemReducer, 
-    productsList[[Math.floor(Math.random()*productsList.length)]]);
+    initProductsListFiltered[[Math.floor(Math.random()*initProductsListFiltered.length)]])
   const [currentCategory, setCurrentCategoty] = useState('0')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [aughtorsOpen, setAughtorsOpen] = useState(false)
   const [scrollToIndex, setScrollToIndex] = useState(false)
+  const [sortOrder, setSortOrder] = useState('')
   const [isPreviewOpen, dispatchIsPreviewOpen] = useReducer(isPreviewOpenReducer, false)
   // const isLarge =  useMediaQuery(theme.breakpoints.up("lg"))
   const handleCloseModal = () => dispatchIsPreviewOpen({type: 'close'})
   const mediaQueryWidth = useWidth()
-  const [category, id] = useUrlParams();
-
-
+  const [category, id, searchQuery] = useUrlParams();
+  
+  // console.log(`cat: ${category}\n id: ${id}\n query: ${searchQuery}\n currItem: ${currentItem.photo_num}\n cerrcat: ${currentCategory}`)
 
   function itemReducer( state, action) {
     switch (action.type) {
@@ -59,12 +66,36 @@ function MainPage({ config }) {
 
   function changeCategory(category){
     if(category==='0'){
-      setProductsList([...initProductsList])
+      const sortedProducts = sortProductsList(sortOrder, initProductsListFiltered)
+      setProductsList(sortedProducts)
+      dispatchCurrentItem({ 
+        type: 'selected', 
+        item: initProductsListFiltered[[Math.floor(Math.random()*initProductsListFiltered.length)]]
+      })
     } else {
-      setProductsList(initProductsList.filter(el=>el.category===category))
+      const filteredProducts = initProductsList.filter(el=>el.category===category)
+      const sortedProducts = sortProductsList(sortOrder, filteredProducts)
+      setProductsList(sortedProducts)
+      sortedProducts[0] && dispatchCurrentItem({ type: 'selected', item: sortedProducts[0] })
     }
     setCurrentCategoty(category)
-    setScrollToIndex(0)
+  }
+
+  function sortProductsList(sortOrder = false, products = []){
+    if (sortOrder) {
+      switch (sortOrder) {
+        case "date":
+          return  products.slice().sort((a,b)=>{ return b.photo_num - a.photo_num })
+        case "price":
+          return  products.slice().sort((a,b)=>{ return a.price - b.price })
+        case "size":
+          return  products.slice().sort((a,b)=>{ return a.size_w * a.size_h - b.size_w * b.size_h })
+        default:
+          return products
+      } 
+    } else {
+      return products
+    }
   }
 
   // closing preview on large screen
@@ -72,6 +103,67 @@ function MainPage({ config }) {
     if(isPreviewOpen && !['xs', 'sm'].includes(mediaQueryWidth)) 
       dispatchIsPreviewOpen({ type: 'close' });
   }, [mediaQueryWidth, isPreviewOpen])
+
+  // sorting products
+  useEffect(()=>{
+    if(sortOrder){
+      const sortedProducts = sortProductsList(sortOrder, productsList)
+      setProductsList(sortedProducts)
+      sortedProducts[0] && dispatchCurrentItem({ type: 'selected', item: sortedProducts[0] })
+    }
+    // eslint: adding productsList lead to loop
+  }, [sortOrder])
+
+  // if we switch url like /9/10001 -> /9 we need scroll to 0
+  useEffect(()=>{
+    if(!id) {
+      if(currentCategory !== '0'){
+        dispatchCurrentItem({ type: 'selected', item: productsList[0] })
+      }
+      // fix: it doesnt update if it is already 0
+      if(scrollToIndex === 0){
+        setScrollToIndex(false)
+        setTimeout(() => { setScrollToIndex(0) }, 0);
+      } else {
+        setScrollToIndex(0) 
+      }
+      // close preview on md 
+      if(isPreviewOpen) dispatchIsPreviewOpen({ type: 'close' });
+    } else {
+      if (!isPreviewOpen && mediaQueryWidth==='sm') 
+        dispatchIsPreviewOpen({type: 'open'});
+    }
+  }, [id])
+
+
+  // search
+  useEffect(()=>{
+    if(searchQuery){
+      const searchStr = decodeURI(searchQuery).toLowerCase()
+      const searchArr = searchStr.split(";").map(el=>el.trim())
+      
+      const result = 
+        initProductsList.filter(el=>{
+          const searchIn = 
+            `${el.photo_num} ${el.aughtor} ${el.name} ${el.description}`.toLowerCase()
+            for (let i = 0; i < searchArr.length; i++) {
+              if (i >= 20) break;
+              if (searchIn.includes(searchArr[i])) {
+                return true;
+              }
+            }
+          return false;
+        });
+      
+      const sortedProducts = sortProductsList(sortOrder, result)
+      setProductsList(sortedProducts)
+      sortedProducts[0] && dispatchCurrentItem({ type: 'selected', item: sortedProducts[0] })
+    }
+  }, [searchQuery, initProductsList, sortOrder])
+
+  const handleSortOrder = (event)=>{
+    setSortOrder(event.target.value)
+  }
   
   const handleDrawerOpen = () => {
     setDrawerOpen(!drawerOpen);
@@ -89,7 +181,7 @@ function MainPage({ config }) {
     if ( !/^[0-9]{1,2}$/i.test(category) ) {
       return <ErrorPage error={labels.errors.categoryNotFound} />
     } else {
-      if (!categories[category])
+      if (!categories.find(el => el[0].toString() === category))
         return <ErrorPage error={labels.errors.categoryNotFound} />;
       updatedCategory = category;
       changeCategory(category);
@@ -108,7 +200,7 @@ function MainPage({ config }) {
       const index = updatedCategory
         ? productsList.filter(el=>el.category===updatedCategory).findIndex(el=>el.photo_num===id)
         : productsList.findIndex(el=>el.photo_num===id)
-      if (!index || index===-1)
+      if (index===undefined || index===-1)
         return <ErrorPage error={labels.errors.paintingNotFound} />;
       //console.log(`\tindex: ${index} \n\tlen: ${productsList.length} \n\t${updatedCategory}`)
       dispatchCurrentItem({ type: 'selected', item: productsList[index] })
@@ -117,7 +209,7 @@ function MainPage({ config }) {
         dispatchIsPreviewOpen({type: 'open'});
     }
   }
-  // END OF Processing url route
+  // END OF Processing url route 
 
 
   return (
@@ -128,12 +220,24 @@ function MainPage({ config }) {
             <Drawer open={drawerOpen} 
                     onClick={handleDrawerOpen}
                     onClose={(_, reason) => reason === 'backdropClick' && setDrawerOpen(false)}>
-              <DrawerMenu categories={categories} handleCategoryClick={handleCategoryClick} />
+              <DrawerMenu 
+                categories={categories} 
+                sortOrder={sortOrder}
+                handleCategoryClick={handleCategoryClick} 
+                handleSearchClick={()=>{setSearchOpen(true)}} 
+                handleAughtorsClick={()=>{setAughtorsOpen(true)}} 
+                handleSort={handleSortOrder} />
             </Drawer>
           <Box style={{ width: '100%', height: '100vh' }}>
             <ModalPreview open={isPreviewOpen} handleClose={handleCloseModal}>
               <PreviewSection item={ currentItem } />
             </ModalPreview>
+            <ModalCenter open={searchOpen} handleClose={()=>setSearchOpen(false)} >
+              <SearchTextField handleClose={()=>setSearchOpen(false)}/>
+            </ModalCenter>
+            <ModalCenter open={aughtorsOpen} handleClose={()=>setAughtorsOpen(false)} >
+              <ArtistsList priceList={initProductsList} handleClose={()=>setAughtorsOpen(false)} />
+            </ModalCenter>
             <Box sx={{ height: '48px' }} />
             <Box
               sx={{ display: 'flex', height: 'calc(100% - 50px)' }}
