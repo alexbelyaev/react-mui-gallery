@@ -13,19 +13,20 @@ import ModalCenter from './ModalCenter';
 import useWidth from '../hooks/useWidth';
 import useUrlParams from '../hooks/useUrlParams';
 import ErrorPage from './ErrorPage';
-import { CurrentItemContext, CurrentItemDispatchContext} from '../contexts/CurrentItemContext'
+import { CurrentItemDispatchContext } from '../contexts/CurrentItemContext'
 import { IsPreviewOpenDispatchContext } from '../contexts/IsPreviewOpenContext'
 import SearchTextField from './SearchTextField';
 import ArtistsList from './ArtistsList';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { FavoritesContext } from '../contexts/FavoritesContext';
 
 
-function MainPage({ config }) {
+function MainPage({ config, favorites = false }) {
   const {categories, labels, initProductsList} = config
   const initProductsListFiltered = initProductsList.filter(el=>el.category!=='94')
   const [productsList, setProductsList] = useState(initProductsListFiltered)
-  const [currentItem, dispatchCurrentItem] = useReducer(itemReducer, 
-    initProductsListFiltered[[Math.floor(Math.random()*initProductsListFiltered.length)]])
-  const [currentCategory, setCurrentCategoty] = useState('0')
+  const [currentItem, dispatchCurrentItem] = useReducer(itemReducer, {})
+  const [currentCategory, setCurrentCategory] = useState('0')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [aughtorsOpen, setAughtorsOpen] = useState(false)
@@ -36,8 +37,20 @@ function MainPage({ config }) {
   const handleCloseModal = () => dispatchIsPreviewOpen({type: 'close'})
   const mediaQueryWidth = useWidth()
   const [category, id, searchQuery] = useUrlParams();
-  
+  const [favoritesList, setFavoritesList] = useState()
+  const location = useLocation();
+  const currentPathname = location.pathname;
+  const navigate = useNavigate();
+
   // console.log(`cat: ${category}\n id: ${id}\n query: ${searchQuery}\n currItem: ${currentItem.photo_num}\n cerrcat: ${currentCategory}`)
+
+  // initializing current item on first load (main page)
+  if( !currentItem.photo_num && !category && !searchQuery && !favorites ){
+    dispatchCurrentItem({ 
+      type: 'selected', 
+      item: initProductsListFiltered[[Math.floor(Math.random()*initProductsListFiltered.length)]]
+    })
+  }
 
   function itemReducer( state, action) {
     switch (action.type) {
@@ -78,7 +91,7 @@ function MainPage({ config }) {
       setProductsList(sortedProducts)
       sortedProducts[0] && dispatchCurrentItem({ type: 'selected', item: sortedProducts[0] })
     }
-    setCurrentCategoty(category)
+    setCurrentCategory(category)
   }
 
   function sortProductsList(sortOrder = false, products = []){
@@ -158,8 +171,43 @@ function MainPage({ config }) {
       const sortedProducts = sortProductsList(sortOrder, result)
       setProductsList(sortedProducts)
       sortedProducts[0] && dispatchCurrentItem({ type: 'selected', item: sortedProducts[0] })
+      setCurrentCategory('200')
     }
   }, [searchQuery, initProductsList, sortOrder])
+
+  // Favorites.
+  // On favorites page filtering out productList
+  // Determaning this page by param favorites = true from routing
+  useEffect(()=>{
+    if(favorites){
+      const favorites = favoritesList || []
+      const result = initProductsList.filter(el=>favorites.includes(el.photo_num))
+      // Sorting if needed
+      const sortedProducts = sortProductsList(sortOrder, result)
+      setProductsList(sortedProducts)
+      // Setting current item to the first filtered list item
+      sortedProducts[0] && dispatchCurrentItem({ type: 'selected', item: sortedProducts[0] })
+      // When we remove from favorited we should also remove it from url
+      if(id && !favorites.includes(id)){
+        navigate(currentPathname.replace(/\d{6}$/, ''))
+      }
+      setCurrentCategory('100')
+    }
+  }, [favorites, favoritesList, initProductsList, sortOrder])
+
+  // Saving favorites to the localstorage on change
+  useEffect(()=>{
+    if(favoritesList){
+      localStorage.setItem("favorites", JSON.stringify(favoritesList));
+    }
+  }, [favoritesList])
+
+  // Restoring favorites from localstorage.
+  useEffect(()=>{
+    const storageItem = localStorage.getItem("favorites") || '[]'
+    const favorites = JSON.parse(storageItem)
+    favorites.length && setFavoritesList([ ...favorites])
+  }, [])
 
   const handleSortOrder = (event)=>{
     setSortOrder(event.target.value)
@@ -177,6 +225,7 @@ function MainPage({ config }) {
   let updatedCategory
   // if we have url category and it is not equal to the state
   // lets validate it and replase state
+  // console.log(`cat:${category} currCat:${currentCategory} fav:${favorites} srch:${searchQuery}`)
   if(category && category !== currentCategory) {
     if ( !/^[0-9]{1,2}$/i.test(category) ) {
       return <ErrorPage error={labels.errors.categoryNotFound} />
@@ -188,7 +237,7 @@ function MainPage({ config }) {
     }
   }
 
-  if(!category && currentCategory!=='0')
+  if(!category && currentCategory!=='0' && !favorites && !searchQuery)
     changeCategory('0');
 
   // if we have url id and it is not equal to the state
@@ -211,11 +260,20 @@ function MainPage({ config }) {
   }
   // END OF Processing url route 
 
+  const handleFavorite = (id) => {
+    const fav = favoritesList || [] 
+    fav.includes(id)
+      ? setFavoritesList([ ...fav.filter((el) => el !== id) ])
+      : setFavoritesList([ ...fav, id ])
+    if(isPreviewOpen && favorites) 
+      dispatchIsPreviewOpen({ type: 'close' });
+  }
+
 
   return (
     <LocaleContext.Provider value={labels}>
       <MediaQueryContext.Provider value={mediaQueryWidth}>
-        <Container sx={{minWidth: '350px', maxWidth: '1200px'}} disableGutters={true}>
+        <Container sx={{minWidth: '350px', maxWidth: '1300px'}} maxWidth={false} disableGutters={true}>
           <AppBar onIconButtonClick={handleDrawerOpen} cat={currentCategory} catNames={categories}/>
             <Drawer open={drawerOpen} 
                     onClick={handleDrawerOpen}
@@ -230,7 +288,10 @@ function MainPage({ config }) {
             </Drawer>
           <Box style={{ width: '100%', height: '100vh' }}>
             <ModalPreview open={isPreviewOpen} handleClose={handleCloseModal}>
-              <PreviewSection item={ currentItem } />
+              <PreviewSection 
+                item={ currentItem }
+                isFavorite = { favoritesList && favoritesList.includes(currentItem.photo_num)} 
+                onFavoriteClick = {handleFavorite}  />
             </ModalPreview>
             <ModalCenter open={searchOpen} handleClose={()=>setSearchOpen(false)} >
               <SearchTextField handleClose={()=>setSearchOpen(false)}/>
@@ -243,13 +304,25 @@ function MainPage({ config }) {
               sx={{ display: 'flex', height: 'calc(100% - 50px)' }}
             >
               <Box sx={{ flexGrow: 1, display: 'flex' }}>
-                <Box p={1} sx={{width: "45%", display: {xs:"none", md:"block"} }}>
-                  <PreviewSection item={ currentItem } />
+                <Box p={1} sx={{width: "50%", display: {xs:"none", md:"block"} }}>
+                  <PreviewSection 
+                    item={{...currentItem}} 
+                    isFavorite = { favoritesList && favoritesList.includes(currentItem.photo_num)} 
+                    onFavoriteClick = {handleFavorite} 
+                  />
                 </Box>
-                <Box sx={{ flexGrow: 1 }}>
+                <Box sx={{ flexGrow: 1, position: 'relative' }}>
                   <IsPreviewOpenDispatchContext.Provider value={dispatchIsPreviewOpen}>
                     <CurrentItemDispatchContext.Provider value={dispatchCurrentItem}>
-                      <GalleryScrollContainer items={productsList} index={scrollToIndex} />
+                      <FavoritesContext.Provider value={{favoritesList, handleFavorite}}>
+                      {!productsList.length && 
+                          <Box sx={{ width: '100%',height: '100%', position: 'absolute',
+                            display: "flex", justifyContent: "center", alignItems: "center"
+                          }}>
+                            {labels.errors.paintingsNotFound}
+                          </Box>}
+                        <GalleryScrollContainer items={productsList} index={scrollToIndex} />
+                      </FavoritesContext.Provider>
                     </CurrentItemDispatchContext.Provider>
                   </IsPreviewOpenDispatchContext.Provider>
                 </Box>

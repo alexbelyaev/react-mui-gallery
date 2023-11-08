@@ -6,12 +6,13 @@
     "phone" : "+38 (067) 58 30 538",
     "email" : "domkartin@ukr.net",
     "facebook" : "facebook.com/domkartin",
-    "address" : "Київ, Андріївський узвіз 2 «Б»"
+    "address" : "Київ, Боричів Тік, 35 «A»"
   },
   "menu" : {
     "catHeader" : "Категорії",
     "search" : "Пошук",
     "aughtors" : "Художники",
+    "favorites" : "Обране",
     "sort" : {
       "sort" : "Сортувати:",
       "date" : "За часом",
@@ -29,12 +30,18 @@
       "7" : "Міста",
       "8" : "Жанрові",
       "9" : "Мініатюри",
-      "94" : "Галерея"
+      "94" : "Галерея",
+      "100" : "Обране",
+      "200" : "Пошук"
     }
   },
   "errors" : {
     "categoryNotFound" : "Категорія не знайдена",
-    "paintingNotFound" : "Картина не знайдена"
+    "paintingNotFound" : "Картина не знайдена",
+    "paintingsNotFound" : "Картини не знайдені"
+  },
+  "messages" : {
+    "loading" : "Завантаження..."
   }
 }
 

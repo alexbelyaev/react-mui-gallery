@@ -16,6 +16,8 @@ export default function DrawerMenu({
   handleSort=()=>{}
 }) {
 const labels = React.useContext(LocaleContext)
+const filteredCategories = categories.filter(item => ![100,200].includes(item[0]));
+
 
   return (
     <Box
@@ -24,7 +26,7 @@ const labels = React.useContext(LocaleContext)
     >
       <Typography marginTop={'50px'} variant="h6" padding="0 4px">{labels.menu.catHeader}</Typography>
       <MenuList dense>
-        {categories.map((el, index) => (
+        {filteredCategories.map((el, index) => (
             <Link to={el[0] === 0 ? '/' : `/${el[0]}`} key={index}>
               <MenuItem key={index}  onClick={()=>handleCategoryClick(el[0].toString())}>
                 <ListItemText>{el[1]}</ListItemText>
@@ -32,13 +34,17 @@ const labels = React.useContext(LocaleContext)
             </Link>
           ))}
         <Divider />
+        <Link to = '/favorites'>
+          <MenuItem>
+              <ListItemText primaryTypographyProps={{ fontWeight: 'bold' }}>{labels.menu.favorites}</ListItemText>
+          </MenuItem>
+        </Link>
         <MenuItem onClick={handleSearchClick}>
           <ListItemText primaryTypographyProps={{ fontWeight: 'bold' }}>{labels.menu.search}</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleAughtorsClick}>
           <ListItemText primaryTypographyProps={{ fontWeight: 'bold' }}>{labels.menu.aughtors}</ListItemText>
         </MenuItem>
-        <Divider />
       </MenuList>
       <Box sx={{ p: 1, minWidth: 120 }} onClick={(e)=>{e.stopPropagation()}}>
         <FormControl fullWidth size="small">
