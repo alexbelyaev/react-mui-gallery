@@ -7,6 +7,8 @@ import PhoneIcon from '@mui/icons-material/LocalPhoneRounded';
 import EmailIcon from '@mui/icons-material/EmailRounded';
 import HomeIcon from '@mui/icons-material/HomeRounded';
 import FacebookIcon from '@mui/icons-material/FacebookRounded';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import TelegramIcon from '@mui/icons-material/Telegram';
 import { LocaleContext } from '../contexts/LocaleContext'
 
 
@@ -36,28 +38,59 @@ const labels = React.useContext(LocaleContext)
       >
         <Box sx={style}>
           <Box>
+            { labels.contacts.phone && 
             <Stack direction={'row'} p={1}>
               <PhoneIcon/>
               <a href={"tel:"+labels.contacts.phone.replace(/[^\d+]/g,'')}>
                 <Typography pl={1} >{labels.contacts.phone}</Typography>
               </a>
-            </Stack>
+            </Stack> }
+            { labels.contacts.email &&
             <Stack direction={'row'} p={1}>
               <EmailIcon />
               <a href={`mailto:${labels.contacts.email}`} target="_top">
                 <Typography pl={1} >{labels.contacts.email}</Typography>
               </a>
             </Stack>
+            }
+            { labels.contacts.telegram &&
+            <Stack direction={'row'} p={1}>
+              <TelegramIcon />
+              <a href={labels.contacts.telegram} target="_blank" rel="noreferrer">
+                <Typography pl={1} >Telegram</Typography>
+              </a>
+            </Stack>  
+            }
+            { labels.contacts.facebook &&
             <Stack direction={'row'} p={1}>
               <FacebookIcon />
               <a href={"https://"+labels.contacts.facebook} target="_blank" rel="noreferrer">
                 <Typography pl={1} >{labels.contacts.facebook}</Typography>
               </a>
-            </Stack>    
+            </Stack>  
+            }
+            { labels.contacts.instagram &&
+            <Stack direction={'row'} p={1}>
+              <InstagramIcon />
+              <a href={labels.contacts.instagram} target="_blank" rel="noreferrer">
+                <Typography pl={1} >Instagram</Typography>
+              </a>
+            </Stack>  
+            }
+            { labels.contacts.etsy &&
+            <Stack direction={'row'} p={1}>
+              <HomeIcon />
+              <a href={labels.contacts.etsy} target="_blank" rel="noreferrer">
+                <Typography pl={1} >Etsy</Typography>
+              </a>
+            </Stack>  
+            }
+            { labels.contacts.address &&
             <Stack direction={'row'} p={1}>
               <HomeIcon />
               <Typography pl={1} >{labels.contacts.address}</Typography>
             </Stack>
+            }
           </Box>
         </Box>
       </Modal>

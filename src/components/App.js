@@ -23,7 +23,7 @@ function App() {
   const theme = createTheme(mainTheme)
   
   useEffect(()=>{
-    fetch(`/gallery/data/data.php`)
+    fetch(`/data/products.json`)
     .then((r) => r.json())
     .then((data) =>{
       setinitProductsList(data.reverse())
@@ -37,7 +37,7 @@ function App() {
     :
     //<Router basename='gallery'>
     <ThemeProvider theme={theme}>
-      <Router basename='gallery'>
+      <Router>
         <Routes >
           <Route exact path="/" element={<MainPage config={config} />} />
           <Route exact path="/:category" element={<MainPage config={config} />} />

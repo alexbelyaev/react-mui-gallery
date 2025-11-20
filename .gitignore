@@ -2,14 +2,11 @@
 
 # data
 /src/data/products.json
-/public/data/products.json
 
 # notes
 /notes
 
 /temp
-/public/pic_s
-/public/pic
 
 # dependencies
 /node_modules
