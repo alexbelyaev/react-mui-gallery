@@ -31,4 +31,3 @@ yarn-debug.log*
 yarn-error.log*
 src/data/products_old.json
 src/data/products.json
-public/data/products.json
